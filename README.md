@@ -513,3 +513,8 @@ chown -R deploy:deploy "/home/deploy"
 chown -R deploy:deploy "/home/deploy/realworld"
 chown -R deploy:deploy "/home/deploy/realworld/public"
 ```
+
+In your front end project, in Gitlab, go to settings -> variables and add
+another one environment variable to those three you already have:
+
+**Key:** `REACT_APP_BACKEND_URL`, **Value:** `<http://app.PUBLIC_IP4_ADDRESS.nip.io/api>`
