@@ -286,10 +286,10 @@ upstream backend {
 
 server {
   listen 80 default_server;
-  listen [::]:80 default_server;
+  listen [::]:80 ipv6only=on default_server;
   server_name app.PUBLIC_IP4_ADDRESS.nip.io;
   index index.html;
-  root /home/deploy/realworld/public/;
+  root /home/deploy/realworld/public;
 
   location /api {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -499,3 +499,17 @@ Add the line to the deploy stage:
 
 # FRONTEND
 
+If you're experiencing an issue relating to the HTTP 403 Forbidden response
+status code, connect to you EC2 instance as **ec2-user**, then switch to
+**root** and check out permissions on a set of directories:
+
+`namei -om "/home/deploy/realworld/public"`
+
+Basically, at any level set deploy:deploy
+
+```
+chown -R deploy:deploy "/home"
+chown -R deploy:deploy "/home/deploy"
+chown -R deploy:deploy "/home/deploy/realworld"
+chown -R deploy:deploy "/home/deploy/realworld/public"
+```
