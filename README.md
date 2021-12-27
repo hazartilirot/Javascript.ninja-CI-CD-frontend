@@ -530,11 +530,11 @@ unnecessary files, but build/ directory and the actual file with irrelevant
 files and directories which we would exclude in a synchronizing process with 
 our remote machine at the deploy stage
 ````
- - name: Creating a Sanitizer list
+    - name: Creating a Sanitizer list
       run: |
         apk -U add findutils
-        find -maxdepth 1 -mindepth 1 \! -name "build" -printf "%P\\n" > sanitizer.txt
-        cat sanitizer.txt
+        find -maxdepth 1 -mindepth 1 -not -name "build" -printf "%P\\n" > build/sanitizer.txt
+        cat build/sanitizer.txt
 ````
 
 Go in the GitHub's project to Settings, then Secrets and add all environment 
@@ -566,8 +566,8 @@ snippet to:
       run: |
         rsync -a --progress \
         --human-readable --delete \
+        --exclude={'.git','sanitizer.txt'} \
         --exclude-from='sanitizer.txt' \
         . deploy@${REMOTE_HOST}:~/realworld/public/
 ```
 All listed files and directories in sanitizer.txt would be omitted.
-
