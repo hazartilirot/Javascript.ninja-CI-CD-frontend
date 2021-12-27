@@ -1,0 +1,65 @@
+name: eslint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: node:16.13.1-alpine
+    steps:
+    - uses: actions/checkout@v2
+    - name: cache node modules
+      uses: actions/cache@v2
+      env:
+        cache-name: npm-${{ hashFiles('package-lock.json') }}
+      with:
+        path: ~/.npm
+        key: ${{ env.cache-name }}
+        restore-keys: ${{ env.cache-name }}
+    - name: Install dependencies
+      run: npm install
+    - name: Building our application
+      run: REACT_APP_BACKEND_URL=${{ secrets.REACT_APP_BACKEND_URL }} npm run build
+    - name: Creating a Sanitizer list
+      run: |
+        apk -U add findutils
+        find -maxdepth 1 -mindepth 1 -not -name "build" -printf "%P\\n" > build/sanitizer.txt
+        cat build/sanitizer.txt
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build/*
+        
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: build
+    - name: Esteblish a SSH connection
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+        echo "${SSH_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+        chmod 400 ~/.ssh/id_rsa
+    - name: Copying files to our remote EC2 instance
+      env:
+        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+      run: |
+        rsync -a --progress \
+        --human-readable --delete \
+        --exclude={'.git','sanitizer.txt'} \
+        --exclude-from='sanitizer.txt' \
+        . deploy@${REMOTE_HOST}:~/realworld/public/
